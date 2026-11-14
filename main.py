@@ -36,6 +36,7 @@ MAX_PRICE = 9_999_999.99999
 
 SHORT_WINDOW = 720    # minutes of log-price slope (12 h)
 LONG_WINDOW = 2880    # minutes of log-price slope (48 h)
+MIN_SAMPLES = 60      # with fewer prices than this, a slope is noise: persist
 SHORT_WEIGHT = 0.5    # damping of the short-window implied 240-min move
 LONG_WEIGHT = 0.2     # damping of the long-window implied 240-min move
 VOL_WINDOW = 240      # minutes of 1-min log returns for realised volatility
@@ -85,6 +86,9 @@ def forecast(prices):
     last = prices[-1]
     if not (isinstance(last, (int, float)) and math.isfinite(last) and last > 0):
         raise ValueError("last price is not a positive finite number")
+    if len(prices) < MIN_SAMPLES:
+        # Too little history for a slope to mean anything: persist.
+        return price5(last)
     short_move = ols_log_slope(prices, SHORT_WINDOW) * HORIZON * SHORT_WEIGHT
     long_move = ols_log_slope(prices, LONG_WINDOW) * HORIZON * LONG_WEIGHT
     vol = realised_vol(prices, VOL_WINDOW)
